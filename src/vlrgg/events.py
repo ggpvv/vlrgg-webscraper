@@ -36,16 +36,6 @@ def _event_url(event, events_resp):
     url_string = None
     if re.match('(\d+)', event):
         url_string = event_root_url + event
-    else:
-        if events_resp:
-            event_text = BeautifulSoup(events_resp.text, 'lxml')
-            event_items = (event_text.find_all('a', 'event-item'))
-            for event_item in event_items:
-                title_tag = event_item.find('div', class_='event-item-title')
-                item_title = title_tag.contents[0].strip()
-                if event == item_title:
-                    url_string = vlr_root
-                    break
 
     return url_string
 
