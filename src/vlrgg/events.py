@@ -22,7 +22,7 @@ def event_games(event, table_names):
         match_urls = _event_match_urls(matches_resp)
         """
         for match_url in match_urls:
-            match_resp = vlr_session.get('match_url)
+            match_resp = vlr_session.get(root_url + match_url)
             for table_name in table_names:
                 table_data = function_map[table_name](match_resp)
                 for k, v in table_data.items():
