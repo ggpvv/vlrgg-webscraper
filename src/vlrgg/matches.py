@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 import re
 
-def scrape_matches(match_resp):
+def scrape_match(match_resp):
     row_data = {}
     if match_resp:
         match_soup = BeautifulSoup(match_resp.text, 'lxml')
