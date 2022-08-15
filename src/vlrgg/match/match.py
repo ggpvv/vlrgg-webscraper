@@ -7,8 +7,8 @@ from expression import Ok, Result, Error
 from expression.extra.result import pipeline
 from functools import partial
 
-from vlrgg.utils import utils
-from vlrgg.utils import functional_soup as fs
+from utils import utils
+from utils import functional_soup as fs
 
 def get_match(match_soup):
     row_data = {}

@@ -7,7 +7,7 @@ from expression import Ok, Result, Error
 from expression.extra.result import pipeline
 from functools import partial
 
-from vlrgg.utils import utils, functional_soup as fs
+from utils import utils, functional_soup as fs
 
 def event_games(event):
     html = partial(utils.scrape_url, get_match_urls)
@@ -26,11 +26,8 @@ def event_games(event):
 
 
 def get_match_urls(soup):
+    def get_match_url(a_tag):
+        return fs.attribute('href', a_tag).map(lambda x: 'https://vlr.gg' + x)
     match_items = fs.find_elements('a', {'class': 'match-item'}, soup)
-    match match_items:
-        case Ok(value=match_seq):
-            def get_match_url(a_tag):
-                return fs.attribute('href', a_tag).map(lambda x: 'https://vlr.gg' + x)
-            return Ok(match_seq.map(lambda x: get_match_url(x).value))
-        case Error():
-            return Error('Could not find matches')
+    return utils.sequence_iter(
+        match_items.map(lambda x: x.map(get_match_url)))
