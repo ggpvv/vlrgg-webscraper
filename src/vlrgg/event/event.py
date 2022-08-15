@@ -7,7 +7,7 @@ from expression import Ok, Result, Error
 from expression.extra.result import pipeline
 from functools import partial
 
-from utils import utils, functional_soup as fs
+from vlrgg.utils import utils, functional_soup as fs
 
 def event_games(event):
     html = partial(utils.scrape_url, get_match_urls)

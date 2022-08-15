@@ -27,7 +27,7 @@ def sequence_iter(wrapped_iter):
                 return val
             case Error():
                 return np.nan
-
+                
     iter = wrapped_iter.value
     match iter:
         case seq.Seq() as l:

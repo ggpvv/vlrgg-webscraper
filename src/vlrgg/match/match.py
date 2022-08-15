@@ -7,8 +7,8 @@ from expression import Ok, Result, Error
 from expression.extra.result import pipeline
 from functools import partial
 
-from utils import utils
-from utils import functional_soup as fs
+from vlrgg.utils import utils
+from vlrgg.utils import functional_soup as fs
 
 def get_match(match_soup):
     row_data = {}
@@ -81,4 +81,4 @@ def get_match(match_soup):
     row_data['Team1'] = team1name_fn(match_soup).map(strip_text)
     row_data['Team2'] = team2name_fn(match_soup).map(strip_text)
 
-    return row_data
+    return Ok(row_data)
