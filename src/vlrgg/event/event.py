@@ -3,26 +3,25 @@ import pandas as pd
 import requests
 import re
 import sys
-from expression import Ok, Result, Error
+from expression import Ok, Result, Error, pipe, compose
+from expression.core import result
 from expression.extra.result import pipeline
 from functools import partial
 
 from vlrgg.utils import utils, functional_soup as fs
+from vlrgg.match import match
 
 def event_games(event):
-    html = partial(utils.scrape_url, get_match_urls)
     url_str = 'https://vlr.gg/event/matches/' + str(event) + '/?series_id=all&group=completed'
-    urls_result = html(url_str)
-    return urls_result
-    # the function is correctly returning the html soup object of the matches page
-    # urls will contain the list of the urls of all the matches for that event
-    # scrape each url, getting whatever information is needed
-    # build this into a dictionary containing the table data
-    #match urls_result:
-    #    case Success(value=val) as succ:
-    #        return val.map(lambda x: x.upper())
-    #    case Error() as failure:
-    #        return failure
+    match_urls = partial(utils.scrape_url, get_match_urls)
+    scrape_match = partial(utils.scrape_url, match.get_match)
+    return pipe(
+                url_str,
+                match_urls,
+                result.map(lambda x: x.map(scrape_match)),
+                result.map(lambda x: x.map(lambda x: utils.sequence_iter(Ok(x)))),
+                utils.sequence_iter
+           )
 
 
 def get_match_urls(soup):
@@ -30,4 +29,5 @@ def get_match_urls(soup):
         return fs.attribute('href', a_tag).map(lambda x: 'https://vlr.gg' + x)
     match_items = fs.find_elements('a', {'class': 'match-item'}, soup)
     return utils.sequence_iter(
-        match_items.map(lambda x: x.map(get_match_url)))
+        match_items.map(lambda x: x.map(get_match_url))
+        )

@@ -27,9 +27,8 @@ def sequence_iter(wrapped_iter):
                 return val
             case Error():
                 return np.nan
-                
-    iter = wrapped_iter.value
-    match iter:
+    val = wrapped_iter.value
+    match val:
         case seq.Seq() as l:
             seq_values = seq.of_iterable(l)
             return Ok(seq_values.filter(lambda x: x.is_ok()).map(sequence))

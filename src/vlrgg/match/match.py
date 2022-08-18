@@ -80,5 +80,20 @@ def get_match(match_soup):
     row_data['Team2ID'] = team2id_fn(match_soup)
     row_data['Team1'] = team1name_fn(match_soup).map(strip_text)
     row_data['Team2'] = team2name_fn(match_soup).map(strip_text)
+    # Map scores
+    score_info = partial(fs.find_element,
+                         'div',
+                         {'class': 'match-header-vs-score'})
+    scores = partial(fs.find_elements,
+                     'span',
+                     None)
+    team_score_fn = pipeline(
+        score_info,
+        scores)
+    row_data['Team1_MapScore'] = team_score_fn(match_soup).map(
+                                      lambda x: strip_text(x.head()))
+    row_data['Team2_MapScore'] = team_score_fn(match_soup).map(
+                                      lambda x: strip_text(
+                                                x.to_list().item(2)))
 
-    return Ok(row_data)
+    return row_data
