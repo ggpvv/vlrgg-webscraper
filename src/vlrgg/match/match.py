@@ -10,7 +10,7 @@ from functools import partial
 from vlrgg.utils import utils
 from vlrgg.utils import functional_soup as fs
 
-def get_match(match_soup):
+def match_data(match_soup):
     row_data = {}
     def strip_text(x): return x.text.strip()
     def clean_stage(x): return ' '.join(x.text.split())
@@ -97,3 +97,15 @@ def get_match(match_soup):
                                                 x.to_list().item(2)))
 
     return row_data
+    
+
+def team_id():
+    pass
+    
+    
+def team_name():
+    pass
+    
+    
+def match_id():
+    pass

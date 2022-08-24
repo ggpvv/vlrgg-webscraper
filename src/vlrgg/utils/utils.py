@@ -7,12 +7,12 @@ from expression.collections import seq
 
 def scrape_url(strategy, url):
     url_pipe = pipeline(
-                get_html,
+                html_text,
                 strategy)
     return url_pipe(url)
 
 
-def get_html(url):
+def html_text(url):
     events_resp = requests.get(url, timeout=10)
     if events_resp:
         return Ok(BeautifulSoup(events_resp.text, 'lxml'))
