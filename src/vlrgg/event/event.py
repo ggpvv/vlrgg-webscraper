@@ -11,7 +11,7 @@ from functools import partial
 from vlrgg.utils import utils, functional_soup as fs
 from vlrgg.match import match
 
-def event_games(event):
+def event_matches(event):
     url_str = 'https://vlr.gg/event/matches/' + str(event) + '/?series_id=all&group=completed'
     urls = partial(utils.scrape_url, match_urls)
     scrape_match = partial(utils.scrape_url, match.match_data)
