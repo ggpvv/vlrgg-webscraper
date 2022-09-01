@@ -37,3 +37,11 @@ def sequence_iter(wrapped_iter):
             wrapped_values = [d[k] for k in keys if k in d]
             unwrapped_values = map(sequence, wrapped_values)
             return Ok(dict(zip(keys, unwrapped_values)))
+            
+
+def strip_text(x): 
+    return x.text.strip()
+
+
+def clean_stage(x): 
+    return ' '.join(x.text.split())

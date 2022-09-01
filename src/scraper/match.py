@@ -12,8 +12,6 @@ from vlrgg.utils import functional_soup as fs
 
 def match_data(match_soup):
     row_data = {}
-    def strip_text(x): return x.text.strip()
-    def clean_stage(x): return ' '.join(x.text.split())
     # MatchID
     matchid_fn = pipeline(
         partial(fs.find_element, 'input', {'name': 'thread_id'}),
@@ -30,7 +28,7 @@ def match_data(match_soup):
         patch_date_header,
         partial(fs.find_element, 'div', {'class': 'moment-tz-convert'}),
         partial(fs.attribute, 'data-utc-ts'))
-    row_data['Patch'] = patch_fn(match_soup).map(strip_text)
+    row_data['Patch'] = patch_fn(match_soup).map(utils.strip_text)
     row_data['Date'] = date_fn(match_soup)
     # EventID, EventName, EventStage
     event_header = partial(fs.find_element,
@@ -50,8 +48,8 @@ def match_data(match_soup):
                 'div',
                 {'class': 'match-header-event-series'}))
     row_data['EventID'] = eventid_fn(match_soup)
-    row_data['EventName'] = eventname_fn(match_soup).map(strip_text)
-    row_data['EventStage'] = eventstage_fn(match_soup).map(clean_stage)
+    row_data['EventName'] = eventname_fn(match_soup).map(utils.strip_text)
+    row_data['EventStage'] = eventstage_fn(match_soup).map(utils.clean_stage)
     # Team IDs and Names
     team_header = partial(fs.find_element,
                           'div',
@@ -78,8 +76,8 @@ def match_data(match_soup):
         teamname)
     row_data['Team1ID'] = team1id_fn(match_soup)
     row_data['Team2ID'] = team2id_fn(match_soup)
-    row_data['Team1'] = team1name_fn(match_soup).map(strip_text)
-    row_data['Team2'] = team2name_fn(match_soup).map(strip_text)
+    row_data['Team1'] = team1name_fn(match_soup).map(utils.strip_text)
+    row_data['Team2'] = team2name_fn(match_soup).map(utils.strip_text)
     # Map scores
     score_info = partial(fs.find_element,
                          'div',
@@ -91,21 +89,40 @@ def match_data(match_soup):
         score_info,
         scores)
     row_data['Team1_MapScore'] = team_score_fn(match_soup).map(
-                                      lambda x: strip_text(x.head()))
+                                      lambda x: utils.strip_text(x.head()))
     row_data['Team2_MapScore'] = team_score_fn(match_soup).map(
-                                      lambda x: strip_text(
+                                      lambda x: utils.strip_text(
                                                 x.to_list().item(2)))
 
     return row_data
     
-
-def team_id():
-    pass
+def team_info(team_num, soup):
+    info = pipeline(partial(fs.find_element,
+                          'div',
+                          {'class': 'match-header-vs'}),
+                    partial(fs.find_element, 'a', {'class': f'mod-{team_num}'}))
+    return info(soup)
+    
+                                                   
+def team_id(team_num, soup):
+    teamid_pattern = re.compile('/(?P<teamid>\d+)/')
+    id_val = pipeline(
+        partial(team_info, team_num),
+        partial(fs.search_pattern, teamid_pattern))
+    return id_val(soup)
     
     
-def team_name():
-    pass
+def team_name(team_num, soup):
+    name = pipeline(
+        partial(team_info, team_num),
+        partial(fs.find_element, 'div', {'class': 'wf-title-med'}))
+    return name(soup).map(utils.strip_text)
     
     
-def match_id():
-    pass
+def match_id(soup):
+    return pipeline(
+        partial(fs.find_element, 'input', {'name': 'thread_id'}),
+        partial(fs.attribute, 'value'))(soup)
+        
+def strip_text(x): return x.text.strip()
+def clean_stage(x): return ' '.join(x.text.split())

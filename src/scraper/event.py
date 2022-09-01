@@ -24,6 +24,9 @@ def event_matches(event):
            )
 
 
+def event_games(event):
+    pass
+
 def match_urls(soup):
     def match_url(a_tag):
         return fs.attribute('href', a_tag).map(lambda x: 'https://vlr.gg' + x)
