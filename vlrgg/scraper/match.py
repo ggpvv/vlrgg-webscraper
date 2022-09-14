@@ -99,6 +99,7 @@ def match_data(match_soup):
 
     return row_data
     
+    
 def team_info(team_num, soup):
     info = pipeline(partial(fs.find_element,
                           'div',
