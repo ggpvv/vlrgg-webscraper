@@ -16,6 +16,18 @@ def game_data(root_url, game_id):
     overview_soup = match_soup.bind(
     		partial(fs.find_element, 'div', {'class': 'vm-stats-game',
                                  		 'data-game-id': game_id}))
+    # Team divs
+    team1_div = partial(fs.find_element, 'div', {'class': 'team'})
+    team2_div = partial(fs.find_element, 'div', {'class': 'team mod-right'})
+    score_div = partial(fs.find_element, 'div', {'class': 'score'})
+    team1_score = pipeline(
+    			team1_div,
+    			score_div,
+    			fs.inner_text)
+    team2_score = pipeline(
+    			team2_div,
+    			score_div,
+    			fs.inner_text)
    
     # GameID and MatchID
     row_data['GameID'] = Ok(game_id)
@@ -27,19 +39,14 @@ def game_data(root_url, game_id):
     		fs.stripped_strings)
     row_data['Map'] = overview_soup.bind(map_name).map(
     				lambda x: x[0])
-    # Team divs
-    team1_div = partial(fs.find_element, 'div', {'class': 'team'})
-    team2_div = partial(fs.find_element, 'div', {'class': 'team mod-right'})
-    score_div = partial(fs.find_element, 'div', {'class': 'score'})
+    # Team IDs
+    row_data['Team1ID'] = match_soup.bind(partial(match.team_id, 1))
+    row_data['Team2ID'] = match_soup.bind(partial(match.team_id, 2))
+    # Team names and winner
+    row_data['Team1'] = match_soup.bind(partial(match.team_name, 1))
+    row_data['Team2'] = match_soup.bind(partial(match.team_name, 2))
+    row_data['Winner'] = 
     # Team total rounds
-    team1_score = pipeline(
-    			team1_div,
-    			score_div,
-    			fs.inner_text)
-    team2_score = pipeline(
-    			team2_div,
-    			score_div,
-    			fs.inner_text)
     row_data['Team1TotalRounds'] = overview_soup.bind(team1_score)
     row_data['Team2TotalRounds'] = overview_soup.bind(team2_score)
     
