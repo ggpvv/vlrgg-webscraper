@@ -45,7 +45,19 @@ def game_data(root_url, game_id):
     # Team names and winner
     row_data['Team1'] = match_soup.bind(partial(match.team_name, 1))
     row_data['Team2'] = match_soup.bind(partial(match.team_name, 2))
-    row_data['Winner'] = 
+    
+    def is_winner(team_div):
+    	score_div = team_div.bind(partial(
+    		        fs.find_element, 'div', {'class': 'mod-win'}))
+    	match score_div:
+    		case Ok():
+    			return True
+    		case _:
+    			return False
+    				
+    row_data['Winner'] = (row_data['Team1'] 
+    				if is_winner(overview_soup.bind(team1_div))
+                                else row_data['Team2'])
     # Team total rounds
     row_data['Team1TotalRounds'] = overview_soup.bind(team1_score)
     row_data['Team2TotalRounds'] = overview_soup.bind(team2_score)
