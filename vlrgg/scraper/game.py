@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import requests
 from expression import Ok, Result, Error, pipe, compose
+from expression.collections import seq
 from expression.core import result
 from expression.extra.result import pipeline
 from functools import partial
@@ -23,11 +24,13 @@ def game_data(root_url, game_id):
     team1_score = pipeline(
     			team1_div,
     			score_div,
-    			fs.inner_text)
+    			fs.inner_text
+    			)
     team2_score = pipeline(
     			team2_div,
     			score_div,
-    			fs.inner_text)
+    			fs.inner_text
+    			)
    
     # GameID and MatchID
     row_data['GameID'] = Ok(game_id)
@@ -57,9 +60,40 @@ def game_data(root_url, game_id):
     				
     row_data['Winner'] = (row_data['Team1'] 
     				if is_winner(overview_soup.bind(team1_div))
-                                else row_data['Team2'])
+                                else row_data['Team2']
+                         )
     # Team total rounds
     row_data['Team1TotalRounds'] = overview_soup.bind(team1_score)
     row_data['Team2TotalRounds'] = overview_soup.bind(team2_score)
+    # Half scores and sides
+    team1_half_rounds_fn = pipeline(
+    			  team1_div,
+    			  partial(fs.find_elements, 'span', {})
+    			  )
+    team2_half_rounds_fn = pipeline(
+    			  team2_div,
+    			  partial(fs.find_elements, 'span', {})
+    			  )
     
+    def side(attribute):
+        result = 'attack' if attribute == 'mod-t' else 'defense'
+        return result
+    
+    first_half_side = compose(
+    			seq.head,
+    			partial(fs.attribute, 'class'),
+    			result.map(lambda x: x[0])
+    			)    			
+    row_data['Team1_SideFirstHalf'] = overview_soup.bind(
+    					pipeline(
+    					    team1_half_rounds_fn,
+    					    first_half_side
+    					    )
+    					).map(side)
+    row_data['Team2_SideFirstHalf'] = overview_soup.bind(
+    					pipeline(
+    					    team2_half_rounds_fn,
+    					    first_half_side
+    					    )
+    					).map(side)
     return row_data                            
