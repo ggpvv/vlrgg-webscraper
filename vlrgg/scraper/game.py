@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import requests
 from expression import Ok, Result, Error, pipe, compose
-from expression.collections import seq
+from expression.collections import seq, block
 from expression.core import result
 from expression.extra.result import pipeline
 from functools import partial
@@ -96,4 +96,50 @@ def game_data(root_url, game_id):
     					    first_half_side
     					    )
     					).map(side)
+    first_half = compose(seq.head,
+                         fs.inner_text
+                 )
+    second_half = compose(seq.tail,
+                          seq.head,
+                          fs.inner_text
+                  )
+    ot_rounds = pipeline(partial(fs.find_element, 'div', {'class': 'mod-ot'}),
+                         fs.inner_text
+                )
+    row_data['Team1_RoundsFirstHalf'] = overview_soup.bind(
+                                            pipeline(
+                                                team1_half_rounds_fn,
+                                                first_half
+                                            )
+                                        )
+    row_data['Team1_RoundsSecondHalf'] = overview_soup.bind(
+                                            pipeline(
+                                                team1_half_rounds_fn,
+                                                second_half
+                                            )
+                                        )
+    row_data['Team1_RoundsOT'] = overview_soup.bind(
+                                     pipeline(
+                                         team1_div,
+                                         ot_rounds
+                                     )
+                                 )
+    row_data['Team2_RoundsFirstHalf'] = overview_soup.bind(
+                                            pipeline(
+                                                team2_half_rounds_fn,
+                                                first_half
+                                            )
+                                        )
+    row_data['Team2_RoundsSecondHalf'] = overview_soup.bind(
+                                            pipeline(
+                                                team2_half_rounds_fn,
+                                                second_half
+                                            )
+                                        )
+    row_data['Team2_RoundsOT'] = overview_soup.bind(
+                                     pipeline(
+                                         team2_div,
+                                         ot_rounds
+                                     )
+                                 )                                                                            
     return row_data                            
