@@ -28,7 +28,7 @@ def attribute(attr, tag):
 def search_pattern(pattern, text):
     result = pattern.search(str(text))
     if result:
-        return Ok(result[1])
+        return Ok(result)
     else:
         return Error(f'pattern {pattern} not found')
         

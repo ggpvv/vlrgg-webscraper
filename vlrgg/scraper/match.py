@@ -1,6 +1,7 @@
 import re
 
 from bs4 import BeautifulSoup
+from collections import namedtuple
 import pandas as pd
 import requests
 from expression import Ok, Result, Error
@@ -10,6 +11,7 @@ from functools import partial
 
 from vlrgg.utils import utils
 from vlrgg.utils import functional_soup as fs
+from vlrgg.utils import functional_regex as fre
 
 def match_data(match_soup):
     row_data = {}
@@ -17,7 +19,7 @@ def match_data(match_soup):
     matchid_fn = pipeline(
         partial(fs.find_element, 'input', {'name': 'thread_id'}),
         partial(fs.attribute, 'value'))
-    row_data['matchID'] = matchid_fn(match_soup)
+    row_data['MatchID'] = matchid_fn(match_soup)
     # Patch and Date
     patch_date_header = partial(fs.find_element,
                                 'div',
@@ -40,7 +42,9 @@ def match_data(match_soup):
     eventid_fn = pipeline(
         event_header,
         partial(fs.attribute, 'href'),
-        partial(fs.search_pattern, eventid_pattern))
+        partial(fre.search_pattern, eventid_pattern),
+        partial(fre.re_match_group, 'eventid')
+        )
     eventname_fn = pipeline(
         event_header,
         partial(fs.find_element, 'div', {'style': 'font-weight: 700;'}),
@@ -49,10 +53,13 @@ def match_data(match_soup):
         event_header,
         partial(fs.find_element,
                 'div',
-                {'class': 'match-header-event-series'}))
+                {'class': 'match-header-event-series'}),
+        fs.inner_text,
+        lambda x: ' '.join(x.split())
+        )
     row_data['EventID'] = eventid_fn(match_soup)
     row_data['EventName'] = eventname_fn(match_soup)
-    row_data['EventStage'] = eventstage_fn(match_soup).map(utils.clean_stage)
+    row_data['EventStage'] = eventstage_fn(match_soup)
     # Team IDs and Names
     team_header = partial(fs.find_element,
                           'div',
@@ -66,10 +73,14 @@ def match_data(match_soup):
     teamid_pattern = re.compile('/(?P<teamid>\d+)/')
     team1id_fn = pipeline(
         team1_info,
-        partial(fs.search_pattern, teamid_pattern))
+        partial(fre.search_pattern, teamid_pattern),
+        partial(fre.re_match_group, 'teamid')
+        )
     team2id_fn = pipeline(
         team2_info,
-        partial(fs.search_pattern, teamid_pattern))
+        partial(fre.search_pattern, teamid_pattern),
+        partial(fre.re_match_group, 'teamid')
+        )
     teamname = partial(fs.find_element, 'div', {'class': 'wf-title-med'})
     team1name_fn = pipeline(
         team1_info,
@@ -96,8 +107,10 @@ def match_data(match_soup):
     scores = team_score_fn(match_soup).map(lambda x: [y for y in x if y.isnumeric()])
     row_data['Team1_MapScore'] = scores.map(lambda x: x[0])
     row_data['Team2_MapScore'] = scores.map(lambda x: x[1])
-
-    return row_data
+    
+    MatchRow = namedtuple('MatchRow', 'MatchID, Patch, Date, EventID, EventName, EventStage, ' 
+                           'Team1ID, Team2ID, Team1, Team2, Team1_MapScore, Team2_MapScore')
+    return MatchRow(**row_data)
     
     
 def team_info(team_num, soup):
@@ -112,7 +125,9 @@ def team_id(team_num, soup):
     teamid_pattern = re.compile('/(?P<teamid>\d+)/')
     id_val = pipeline(
         partial(team_info, team_num),
-        partial(fs.search_pattern, teamid_pattern))
+        partial(fre.search_pattern, teamid_pattern),
+        partial(fre.re_match_group, 'teamid')
+        )
     return id_val(soup)
     
     
