@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import pandas as pd
 import requests
+import re
 from expression import Ok, Result, Error, pipe, compose
 from expression.collections import seq, block
 from expression.core import result
@@ -8,15 +9,17 @@ from expression.extra.result import pipeline
 from functools import partial
 
 from vlrgg.utils import utils, functional_soup as fs
+from vlrgg.utils import functional_regex as fre
 from vlrgg.scraper import match
 
 
 def game_data(root_url, game_id):
     row_data = {}
     match_soup = utils.html_text(root_url)
-    overview_soup = match_soup.bind(
-    		partial(fs.find_element, 'div', {'class': 'vm-stats-game',
-                                 		 'data-game-id': game_id}))
+    stats = partial(fs.find_element, 'div', {'class': 'vm-stats-game',
+                                 		 'data-game-id': game_id}
+            )
+    overview_soup = match_soup.bind(stats)
     # Team divs
     team1_div = partial(fs.find_element, 'div', {'class': 'team'})
     team2_div = partial(fs.find_element, 'div', {'class': 'team mod-right'})
@@ -141,5 +144,182 @@ def game_data(root_url, game_id):
                                          team2_div,
                                          ot_rounds
                                      )
-                                 )                                                                            
-    return row_data                            
+                                 )    
+    # econ round stats
+    econ_url = f'{root_url}?game={game_id}&tab=economy'
+    econ_table = pipeline(
+                     utils.html_text,
+                     stats,
+                     partial(fs.find_element, 'table', {
+                         'class': 'wf-table-inset mod-econ'
+                         }
+                     ),
+                     partial(fs.find_elements, 'tr', {}),
+                     lambda x: Ok(block.of_seq(x).tail())
+                 )
+    team1_stats = block.head
+    team2_stats = compose(block.tail, block.head)
+    econ_stats_cells = pipeline(
+                           partial(fs.find_elements, 'td', {}),
+                           seq.tail,
+                           block.of_seq
+                       )
+    econ_pattern = re.compile(r'(?P<total>\d+) ((?P<won>\d+))')
+    rounds = pipeline(
+                 fs.inner_text,
+                 partial(fre.search_pattern, econ_pattern),
+                 partial(fre.re_match_group, 'total')
+             )
+    won = pipeline(
+              fs.inner_text,
+              partial(fre.search_pattern, econ_pattern),
+              partial(fre.re_match_group, 'won')
+          )
+    # functions for the economy columns
+    print(econ_table(econ_url))
+    """team1_pistol = pipeline(
+                       econ_table,
+                       team1_stats,
+                       econ_stats_cells,
+                       block.item(0),
+                       fs.inner_text
+                   )
+    team2_pistol = pipeline(
+                       econ_table,
+                       team2_stats,
+                       econ_stats_cells,
+                       block.item(0),
+                       fs.inner_text
+                   )
+    team1_eco_total = pipeline(
+                       econ_table,
+                       team1_stats,
+                       econ_stats_cells,
+                       block.item(1),
+                       rounds
+                   )
+    team2_eco_total = pipeline(
+                       econ_table,
+                       team2_stats,
+                       econ_stats_cells,
+                       block.item(1),
+                       rounds
+                   )
+    team1_eco_won = pipeline(
+                       econ_table,
+                       team1_stats,
+                       econ_stats_cells,
+                       block.item(1),
+                       won
+                   )
+    team2_eco_won = pipeline(
+                       econ_table,
+                       team2_stats,
+                       econ_stats_cells,
+                       block.item(1),
+                       won
+                   )
+    team1_semieco_total = pipeline(
+                       econ_table,
+                       team1_stats,
+                       econ_stats_cells,
+                       block.item(2),
+                       rounds
+                   )
+    team2_semieco_total = pipeline(
+                       econ_table,
+                       team2_stats,
+                       econ_stats_cells,
+                       block.item(2),
+                       rounds
+                   )
+    team1_semieco_won = pipeline(
+                       econ_table,
+                       team1_stats,
+                       econ_stats_cells,
+                       block.item(2),
+                       won
+                   )
+    team2_semieco_won = pipeline(
+                       econ_table,
+                       team2_stats,
+                       econ_stats_cells,
+                       block.item(2),
+                       won
+                   )
+    team1_semibuy_total = pipeline(
+                       econ_table,
+                       team1_stats,
+                       econ_stats_cells,
+                       block.item(3),
+                       rounds
+                   )
+    team2_semibuy_total = pipeline(
+                       econ_table,
+                       team2_stats,
+                       econ_stats_cells,
+                       block.item(3),
+                       rounds
+                   )
+    team1_semibuy_won = pipeline(
+                       econ_table,
+                       team1_stats,
+                       econ_stats_cells,
+                       block.item(3),
+                       won
+                   )
+    team2_semibuy_won = pipeline(
+                       econ_table,
+                       team2_stats,
+                       econ_stats_cells,
+                       block.item(3),
+                       won
+                   )
+    team1_fullbuy_total = pipeline(
+                       econ_table,
+                       team1_stats,
+                       econ_stats_cells,
+                       block.item(4),
+                       rounds
+                   )
+    team2_fullbuy_total = pipeline(
+                       econ_table,
+                       team2_stats,
+                       econ_stats_cells,
+                       block.item(4),
+                       rounds
+                   )
+    team1_fullbuy_won = pipeline(
+                       econ_table,
+                       team1_stats,
+                       econ_stats_cells,
+                       block.item(4),
+                       won
+                   )
+    team2_fullbuy_won = pipeline(
+                       econ_table,
+                       team2_stats,
+                       econ_stats_cells,
+                       block.item(4),
+                       won
+                   )
+    row_data['Team1_Pistol_Won'] = team1_pistol(econ_url)
+    row_data['Team2_Pistol_Won'] = team2_pistol(econ_url)
+    row_data['Team1_Eco_Total'] = team1_eco_total(econ_url)
+    row_data['Team1_Eco_Won'] = team1_eco_won(econ_url)
+    row_data['Team2_Eco_Total'] = team2_eco_total(econ_url)
+    row_data['Team2_Eco_Won'] = team2_eco_won(econ_url)
+    row_data['Team1_Semieco_Total'] = team1_semieco_total(econ_url)
+    row_data['Team1_Semieco_Won'] = team1_semieco_won(econ_url)
+    row_data['Team2_Semieco_Total'] = team2_semieco_total(econ_url)
+    row_data['Team2_Semieco_Won'] = team2_semieco_won(econ_url)
+    row_data['Team1_Semibuy_Total'] = team1_semibuy_total(econ_url)
+    row_data['Team1_Semibuy_Won'] = team1_semibuy_won(econ_url)
+    row_data['Team2_Semibuy_Total'] = team2_semibuy_total(econ_url)
+    row_data['Team2_Semibuy_Won'] = team2_semibuy_won(econ_url)
+    row_data['Team1_Fullbuy_Total'] = team1_fullbuy_total(econ_url)
+    row_data['Team1_Fullbuy_Won'] = team1_fullbuy_won(econ_url)
+    row_data['Team2_Fullbuy_Total'] = team2_fullbuy_total(econ_url)
+    row_data['Team2_Fullbuy_Won'] = team2_fullbuy_won(econ_url)"""
+    return row_data
+                         

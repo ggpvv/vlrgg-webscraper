@@ -70,7 +70,7 @@ def match_data(match_soup):
     team2_info = pipeline(
         team_header,
         partial(fs.find_element, 'a', {'class': 'mod-2'}))
-    teamid_pattern = re.compile('/(?P<teamid>\d+)/')
+    teamid_pattern = re.compile(r'/(?P<teamid>\d+)/')
     team1id_fn = pipeline(
         team1_info,
         partial(fre.search_pattern, teamid_pattern),
