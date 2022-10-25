@@ -1,3 +1,4 @@
+from collections import namedtuple
 from bs4 import BeautifulSoup
 import pandas as pd
 import requests
@@ -13,13 +14,12 @@ from vlrgg.utils import functional_regex as fre
 from vlrgg.scraper import match
 
 
-def game_data(root_url, game_id):
+def game_data(game_soup):
     row_data = {}
-    match_soup = utils.html_text(root_url)
-    stats = partial(fs.find_element, 'div', {'class': 'vm-stats-game',
-                                          'data-game-id': game_id}
+    stats = partial(
+                fs.find_element, 'div', {'class': 'vm-stats-game mod-active'}
             )
-    overview_soup = match_soup.bind(stats)
+    overview_soup = stats(game_soup)
     # Team divs
     team1_div = partial(fs.find_element, 'div', {'class': 'team'})
     team2_div = partial(fs.find_element, 'div', {'class': 'team mod-right'})
@@ -36,8 +36,10 @@ def game_data(root_url, game_id):
                 )
    
     # GameID and MatchID
-    row_data['GameID'] = Ok(game_id)
-    row_data['MatchID'] = match_soup.bind(match.match_id)
+    row_data['GameID'] = overview_soup.bind(
+                                       partial(fs.attribute, 'data-game-id')
+                                       )
+    row_data['MatchID'] = match.match_id(game_soup)
     # Map
     map_name = pipeline(
             partial(fs.find_element, 'div', {'class': 'map'}),
@@ -46,11 +48,11 @@ def game_data(root_url, game_id):
     row_data['Map'] = overview_soup.bind(map_name).map(
                     lambda x: x[0])
     # Team IDs
-    row_data['Team1ID'] = match_soup.bind(partial(match.team_id, 1))
-    row_data['Team2ID'] = match_soup.bind(partial(match.team_id, 2))
+    row_data['Team1ID'] = match.team_id(1, game_soup)
+    row_data['Team2ID'] = match.team_id(2, game_soup)
     # Team names and winner
-    row_data['Team1'] = match_soup.bind(partial(match.team_name, 1))
-    row_data['Team2'] = match_soup.bind(partial(match.team_name, 2))
+    row_data['Team1'] = match.team_name(1, game_soup)
+    row_data['Team2'] = match.team_name(2, game_soup)
     
     def is_winner(team_div):
         score_div = team_div.bind(partial(fs.find_element, 'div', {'class': 'mod-win'}))
@@ -145,7 +147,17 @@ def game_data(root_url, game_id):
                                      )
                                  )    
     # econ round stats
-    econ_url = f'{root_url}?game={game_id}&tab=economy'
+    def insert_gameid(game_id, url):
+        return game_id.map(lambda x: f'{url}?game={x}&tab=economy')
+
+    econ_url = row_data['MatchID'].bind(
+                                      compose(
+                                        lambda x: f'https://vlr.gg/{x}/',
+                                        partial(insert_gameid,
+                                                row_data['GameID']
+                                        )
+                                      )
+    )
     econ_table = compose(
                     pipeline(
                         utils.html_text,
@@ -180,8 +192,16 @@ def game_data(root_url, game_id):
                   partial(fre.re_match_group, 'won')
               )
           )
-    team1_econ_stats = compose(econ_table, team1_stats, econ_stats_cells)(econ_url)
-    team2_econ_stats = compose(econ_table, team2_stats, econ_stats_cells)(econ_url)
+    team1_econ_stats = econ_url.bind(
+                                    compose(
+                                        econ_table, team1_stats, econ_stats_cells
+                                    )
+                                )
+    team2_econ_stats = econ_url.bind(
+                                    compose(
+                                        econ_table, team2_stats, econ_stats_cells
+                                    )
+                                )
     # functions for the economy columns
     team1_pistol = compose(
                        result.map(block.item(0)),
@@ -273,5 +293,7 @@ def game_data(root_url, game_id):
     row_data['Team1_Fullbuy_Won'] = team1_fullbuy_won(team1_econ_stats)
     row_data['Team2_Fullbuy_Total'] = team2_fullbuy_total(team2_econ_stats)
     row_data['Team2_Fullbuy_Won'] = team2_fullbuy_won(team2_econ_stats)
-    return row_data
+    columns = list(row_data.keys())
+    GameRow = namedtuple('GameRow', columns)
+    return GameRow(**row_data)
                          
