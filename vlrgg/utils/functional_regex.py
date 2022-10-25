@@ -5,7 +5,7 @@ def search_pattern(pattern, text):
     if result:
         return Ok(result)
     else:
-        return Error(f'pattern {pattern} not found')
+        return Error(f'pattern {pattern} not found in {text}')
         
 
 def re_match_group(group_name, re_match):

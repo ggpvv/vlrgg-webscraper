@@ -43,5 +43,5 @@ def strip_text(x):
     return x.text.strip()
 
 
-def clean_stage(x): 
+def split_stage(x): 
     return ' '.join(x.text.split())
